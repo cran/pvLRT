@@ -58,6 +58,9 @@
 #' @param size_logscale logical. Should the circle size measure in the the bubble plot
 #' be log transformed (more precisely, "log1p" transformed with the function
 #' f(x) = log(1 + x)). Defaults to TRUE.
+#' @param fill_gradient_range character vector. Specifies the range of gradient colors used
+#' for `fill_measure`. Passed into the \code{colours} argument of
+#' `scale_fill_gradientn` from \code{ggplot2}.
 #'
 #'
 #' @examples
@@ -96,6 +99,7 @@ heatmap_pvlrt <- function(object,
                           remove_outside = FALSE,
                           digits = 2,
                           border_color = "black",
+                          fill_gradient_range = c("darkred", "white"),
                           ...) {
   . <- NULL
   dots <- list(...)
@@ -131,6 +135,10 @@ heatmap_pvlrt <- function(object,
 
   darkblue_col <- RColorBrewer::brewer.pal(8, "Blues") %>% tail(1)
 
+  if (show_text) {
+    dat_pl$info <- dat_pl$text
+  }
+
   out <- dat_pl %>%
     ggplot2::ggplot(
       ggplot2::aes_string(
@@ -141,10 +149,11 @@ heatmap_pvlrt <- function(object,
       )
     ) +
     ggplot2::geom_tile(color = border_color) +
-    ggplot2::scale_fill_gradient(
-      low = ifelse(fill_measure == "p_value", darkblue_col, "white"),
-      high = ifelse(fill_measure == "p_value", "white", darkblue_col)
-    ) +
+    # ggplot2::scale_fill_gradient(
+    #   low = ifelse(fill_measure == "p_value", darkblue_col, "white"),
+    #   high = ifelse(fill_measure == "p_value", "white", darkblue_col)
+    # ) +
+    ggplot2::scale_fill_gradientn(colors = fill_gradient_range) +
     ggplot2::theme_bw() +
     ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -158,19 +167,10 @@ heatmap_pvlrt <- function(object,
 
   if (show_text) {
     out <- out +
-      ggplot2::geom_text(
-        mapping = ggplot2::aes_string(
-          label = "text",
-          color = "text_color"
-        ),
-        data = dat_pl,
-        show.legend = FALSE
-      ) +
-      ggplot2::scale_color_manual(
-        values = c(dat_pl$text_color) %>%
-          unique() %>%
-          rev(),
-        guide = "none"
+      ggfittext::geom_fit_text(
+        reflow = TRUE,
+        contrast = TRUE,
+        grow = TRUE
       )
   }
 
@@ -325,6 +325,7 @@ barplot.pvlrt <- function(height,
                           Drug_nrow = 1,
                           border_color = "black",
                           x_axis_logscale = TRUE,
+                          fill_gradient_range = c("darkred", "white"),
                           ...) {
   . <- NULL
   object <- height
@@ -352,8 +353,8 @@ barplot.pvlrt <- function(height,
       factor(levels = rev(levels(.)))
   ]
 
-  fill_range <- RColorBrewer::brewer.pal(n = 10, name = "RdBu") %>%
-    rev()
+  # fill_range <- RColorBrewer::brewer.pal(n = 10, name = "RdBu") %>%
+  #   rev()
 
   n_uniq_fill_meas <- dat_pl[[fill_measure]] %>%
     unique() %>%
@@ -363,12 +364,26 @@ barplot.pvlrt <- function(height,
     fill_range <- fill_range[1]
   }
 
+  if (show_text) {
+    dat_pl$info <- dat_pl$text
+  }
+
+  if (x_axis_logscale) {
+    x_axis_measure_new <- paste0("log1p_", x_axis_measure)
+    # x_axis_label <- bquote('log'[10](1 + .(x_axis_measure)))
+    x_axis_label <- glue::glue("log10(1 + {x_axis_measure})") %>% as.character()
+    dat_pl[[x_axis_measure_new]] <- log(1 + dat_pl[[x_axis_measure]], base = 10)
+  } else {
+    x_axis_measure_new <- x_axis_label <- x_axis_measure
+    dat_pl[[x_axis_measure_new]] <- dat_pl[[x_axis_measure]]
+  }
+
 
   out <- dat_pl %>%
     ggplot2::ggplot(
       ggplot2::aes_string(
         y = "AE",
-        x = x_axis_measure,
+        x = x_axis_measure_new,
         fill = fill_measure,
         label = "info"
       )
@@ -376,7 +391,7 @@ barplot.pvlrt <- function(height,
     ggplot2::geom_bar(stat = "identity", color = border_color) +
     ggplot2::facet_wrap(~Drug, nrow = Drug_nrow) +
     ggplot2::theme_bw() +
-    ggplot2::scale_fill_gradientn(colors = fill_range) +
+    ggplot2::scale_fill_gradientn(colors = fill_gradient_range) +
     ggplot2::theme(
       axis.text.x = ggplot2::element_text(
         angle = 90, vjust = 0.5, hjust = 1
@@ -385,29 +400,13 @@ barplot.pvlrt <- function(height,
       panel.grid.minor = ggplot2::element_blank(),
       panel.border = ggplot2::element_blank()
     ) +
-    ggplot2::labs(y = "")
+    ggplot2::labs(y = "", x = x_axis_label)
 
-
-  if (x_axis_logscale) {
-    out <- out +
-      ggplot2::scale_x_continuous(trans = "log1p")
-  }
 
   if (show_text) {
     out <- out +
-      ggplot2::geom_text(
-        ggplot2::aes_string(label = "text"),
-        hjust = "inward",
-        position = ggplot2::position_dodge(width = 1),
-        inherit.aes = TRUE,
-        show.legend = FALSE
-      ) +
-      ggplot2::scale_color_manual(
-        values = c(dat_pl$text_color) %>%
-          unique() %>%
-          rev(),
-        guide = "none"
-      )
+      ggfittext::geom_bar_text(contrast = TRUE)
+
   }
 
   out
@@ -445,6 +444,7 @@ bubbleplot_pvlrt <- function(object,
                              border_color = "black",
                              x_axis_logscale = TRUE,
                              size_logscale = TRUE,
+                             fill_gradient_range = c("darkred", "white"),
                              ...) {
   . <- NULL
   dots <- list(...)
@@ -478,9 +478,11 @@ bubbleplot_pvlrt <- function(object,
     unique() %>%
     length()
 
-  if (n_uniq_fill_meas == 1) {
-    fill_range <- fill_range[1]
+
+  if (show_text) {
+    dat_pl$info <- dat_pl$text
   }
+
 
   out <- dat_pl %>%
     ggplot2::ggplot(
@@ -495,7 +497,7 @@ bubbleplot_pvlrt <- function(object,
     ggplot2::geom_point(stat = "identity", color = border_color, shape = 21) +
     ggplot2::facet_wrap(~Drug, nrow = Drug_nrow) +
     ggplot2::theme_bw() +
-    ggplot2::scale_fill_gradientn(colors = fill_range) +
+    ggplot2::scale_fill_gradientn(colors = fill_gradient_range) +
     ggplot2::theme(
       axis.text.x = ggplot2::element_text(
         angle = 90, vjust = 0.5, hjust = 1
@@ -518,20 +520,7 @@ bubbleplot_pvlrt <- function(object,
 
 
   if (show_text) {
-    out <- out +
-      ggplot2::geom_text(
-        ggplot2::aes_string(label = "text"),
-        hjust = "inward",
-        position = ggplot2::position_dodge(width = 1),
-        inherit.aes = TRUE,
-        show.legend = FALSE
-      ) +
-      ggplot2::scale_color_manual(
-        values = c(dat_pl$text_color) %>%
-          unique() %>%
-          rev(),
-        guide = "none"
-      )
+    out <- out + ggplot2::geom_text()
   }
 
   out
