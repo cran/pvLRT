@@ -1,11 +1,11 @@
-0e1cde3e9aa5cd61794b81519a3830f6 *DESCRIPTION
+573fdd0a209aa4e2690badc699296248 *DESCRIPTION
 bdbf6cd42e14fd294d2c2b9f47ee9e89 *NAMESPACE
 85e7cbd08f618e63ed5bd5f0ade1884e *R/convert_raw_to_contin_tab.R
 7b3406942632c36c3deaea5b6172e26d *R/data.R
 da4906c57251794ac8d93a1bec38277e *R/lrt-helpers.R
 fd75e69a3a5895fecfa8651713fa51d8 *R/plot-helpers.R
 f6aec5c57ba6ce7d7a83e146e04056b5 *R/pvLRT-package.R
-1f06e6ba6107c949b298f8b553367cf5 *R/pvlrt-main-function.R
+e9b1b3ef3b9c6686921505bdade46950 *R/pvlrt-main-function.R
 8a699f72c4dd55fc58df5676aa3db01e *R/pvlrt-object-S3-methods.R
 055ea2168b9309923fee78fb04c1bb3b *R/pvlrt-plots.R
 f0c6ce08e8745f500a1e95a8a075018d *R/pvlrt-postprocessing-utils.R
